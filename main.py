@@ -64,5 +64,9 @@ if __name__ == "__main__":
             time.sleep(8)
         else:
             print(f"[{out_code}] Game found ! ({resources})")
+            # play sound to notify game found (absolute path needed)
+            with open("sound_path.txt", "r") as f:
+                sound_path = f.readline()
+            playsound(sound_path)
             env.close()
             break

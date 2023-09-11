@@ -1,3 +1,5 @@
+import os
+
 from mss import mss  # Screen capture
 import cv2  # Image processing
 import time  # Time
@@ -7,10 +9,12 @@ from gym import Env  # Gym environment
 import numpy as np  # Numpy
 from PIL import Image
 import pytesseract  # OCR (Optical Character Recognition)
-import os
+import easyocr  # OCR (Optical Character Recognition)
+import tensorflow as tf  # GPU support
+from playsound import playsound  # Sound
 
 
-# Debug : found ressources position
+# Debug : found resources position
 # screen positions (for top right to "wind" button of pycharm)
 # while True:
 #     print(pyautogui.position())  # Print mouse position
@@ -21,55 +25,31 @@ class CocGF(Env):
     def __init__(self):
         self.capture = mss()
         self.game_location = {"top": 128, "left": 673, "width": 80, "height": 85}  # full
-        # self.gold_location = {"top": 128, "left": 678, "width": 80, "height": 20}  # gold
-        # self.elixir_location = {"top": 154, "left": 678, "width": 80, "height": 20}  # elixir
-        # self.dark_location = {"top": 181, "left": 678, "width": 80, "height": 20}  # dark elixir
-        self.minRessources = 600000  # Minimum ressources of any type to stop searching
+        self.toFind = 0  # 0 = gold, 1 = elixir, 2 = dark elixir
+        self.min_resources = 0  # Minimum resources to stop searching
         self.ser = serial.Serial('COM3', 9600)
 
-    def get_ressources(self, minRessources):
-        ressources = np.array(self.capture.grab(self.game_location))
-        res = pytesseract.image_to_string(Image.fromarray(ressources))
-        res = res.replace(" ", "")
-        res = ''.join(i for i in res if i.isdigit() or i == '\n')
-        res = res.split('\n')
-        res = list(filter(None, res))
+    def get_resources(self, min_resources):
+        # get screen capture
+        resources = np.array(self.capture.grab(self.game_location))
+        # read text from image with easyocr
+        reader = easyocr.Reader(['en'], verbose=True)  # todo: add gpu support
+        res = reader.readtext(resources)
 
-        # debug
-        # cv2.imshow("Captured Image", ressources)
-        # cv2.waitKey(0)
-        # end debug
+        # print every word found
+        for i in range(len(res)):
+            print(res[i][1])
 
-        # if any value in result is higher than minRessources, send 0 to arduino
-        if any(int(i) > minRessources for i in res):
+        # if any value in res is higher than min_resources
+        if any(int(res[i][1]) > min_resources for i in range(len(res))):
             return 0, res
         else:
             return 1, res
 
-        # Gold capture
-        # gold_capture = np.array(self.capture.grab(self.gold_location))
-        # gold_img = Image.fromarray(gold_capture)
-        # gold_img.save("temp_screen.png")
-        # os.system("tesseract temp_screen.png stdout")
-        # os.remove("temp_screen.png")
-        #
-        # # Elixir capture
-        # elixir_capture = np.array(self.capture.grab(self.elixir_location))
-        # elixir_img = Image.fromarray(elixir_capture)
-        # elixir_img.save("temp_screen.png")
-        # os.system("tesseract temp_screen.png stdout")
-        # os.remove("temp_screen.png")
-        #
-        # # Dark elixir capture
-        # dark_capture = np.array(self.capture.grab(self.dark_location))
-        # dark_img = Image.fromarray(dark_capture)
-        # dark_img.save("temp_screen.png")
-        # os.system("tesseract temp_screen.png stdout")
-        # os.remove("temp_screen.png")
-
 
 if __name__ == "__main__":
     env = CocGF()
+
     if not env.ser.isOpen():
         env.ser.open()
     print(f"COM3 open : {env.ser.isOpen()}\n[WAIT] 4s before beginning...")
@@ -77,12 +57,12 @@ if __name__ == "__main__":
 
     # Arduino communication
     while True:
-        result, ressources = env.get_ressources(env.minRessources)
-        if result == 1:
+        out_code, resources = env.get_resources(env.min_resources)
+        if out_code == 1:
             env.ser.write(b'1')
-            print(f"[{result}] Insufficient ressources ({ressources})")
+            print(f"[{out_code}] Insufficient resources ({resources})")
             time.sleep(8)
         else:
-            print(f"[{result}] Game found ! ({ressources})")
+            print(f"[{out_code}] Game found ! ({resources})")
             env.close()
             break

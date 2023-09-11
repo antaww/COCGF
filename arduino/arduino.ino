@@ -15,12 +15,12 @@ void loop() {
     if(value == 1) {
       for(pos = 0; pos <= 180; pos += 1) {
         servo.write(pos);
-        delay(10);
+        delay(5);
       }
 
       for(pos = 180; pos >= 0; pos -= 1) {
         servo.write(pos);
-        delay(10);
+        delay(5);
       }
     } else {
       // do nothing

@@ -35,7 +35,7 @@ class CocGF(Env):
     def get_resources(self, min_resources):
         # get screen capture
         img = np.array(self.capture.grab(self.resources_location))
-        cv2.imwrite("img.png", img)
+        cv2.imwrite("src/img.png", img)
 
         # read text from image with easyocr
         print("[OCR] Reading text...")
@@ -54,7 +54,10 @@ class CocGF(Env):
             else:
                 print(f"{arr[self.to_find]}/{min_resources}")
                 return 1, res
-        except ValueError or IndexError:
+        except ValueError:
+            print(f"[ERROR] OCR failed, retrying...")
+            return 2, res
+        except IndexError:
             print(f"[ERROR] OCR failed, retrying...")
             return 2, res
 
@@ -136,7 +139,7 @@ if __name__ == "__main__":
             for i in range(len(resources)):
                 print(f"    {resources[i][1]} {env.resources_names[i]}")
             # play sound to notify game found (absolute path needed)
-            with open("sound_path.txt", "r") as f:
+            with open("src/sound_path.txt", "r") as f:
                 sound_path = f.readline()
             playsound(sound_path)
             env.close()

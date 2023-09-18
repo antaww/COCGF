@@ -63,6 +63,11 @@ class CocGF(Env):
 
 
 if __name__ == "__main__":
+    # handle mirror window
+    mirror_window = pyautogui.getWindowsWithTitle("MirrorTo")[0]
+    mirror_window.size = (1401, 792)
+    mirror_window.moveTo(1920 - 1385, -15)
+
     env = CocGF()
     update = False
 
@@ -129,18 +134,28 @@ if __name__ == "__main__":
         if out_code == 1:
             env.ser.write(b'1')
             print(f"[CODE_{out_code}] Insufficient resources :")
-            for i in range(len(resources)):
+            for i in range(0, 3):
                 print(f"    {resources[i][1]} {env.resources_names[i]}")
         if out_code == 1 or out_code == 2:
-            print(f"[WAIT] 8s before next check...")
-            time.sleep(8)
+            print(f"[WAIT] 7s before next check...")
+            time.sleep(7)
         elif out_code == 0:
             print(f"[CODE_{out_code}] Game found :")
-            for i in range(len(resources)):
+            for i in range(0, 3):
                 print(f"    {resources[i][1]} {env.resources_names[i]}")
             # play sound to notify game found (absolute path needed)
             with open("src/sound_path.txt", "r") as f:
                 sound_path = f.readline()
             playsound(sound_path)
-            env.close()
-            break
+
+            # restart choice
+            user_ipt = input("[CHOICE] Would you like to find another game ? (y/n)\n>>")
+            if user_ipt == "y":
+                print("[WAIT] 7s before next check...")
+                time.sleep(7)
+            elif user_ipt == "n":
+                print("[END] Ending program...")
+                env.close()
+                break
+            else:
+                wrong_input()
